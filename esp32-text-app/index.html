@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>ESP32 Text Reader</title>
+  <link rel="stylesheet" href="/src/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <!-- Top App Bar -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="brand">
+          <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 7V4h16v3M9 20h6M12 4v16"/>
+          </svg>
+          <div class="brand-text">
+            <h1>TextScan</h1>
+            <span class="version-tag">ESP32-CAM</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <button id="btn-status" class="status-badge status-checking" title="ESP32 Connection Status">
+          <span class="status-dot"></span>
+          <span id="status-label">Checking...</span>
+        </button>
+        <button id="btn-settings" class="icon-btn" title="Settings" aria-label="Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="main-content">
+      <!-- Camera Viewfinder Card -->
+      <section class="card viewfinder-card">
+        <div class="card-header">
+          <div class="viewfinder-title">
+            <span class="pulse-indicator"></span>
+            <span>Live ESP32 Viewfinder</span>
+          </div>
+          <div class="viewfinder-actions">
+            <button id="btn-toggle-stream" class="btn-chip active" title="Pause / Resume Live View">
+              <svg class="chip-icon" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="12" r="10"/>
+              </svg>
+              <span id="stream-btn-text">Live</span>
+            </button>
+            <button id="btn-grid" class="icon-btn-sm" title="Toggle Grid Overlay">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <path d="M3 9h18M3 15h18M9 3v18M15 3v18"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="viewfinder-frame">
+          <img id="viewfinder-img" src="" alt="Camera Stream" crossorigin="anonymous" />
+          
+          <div id="grid-overlay" class="grid-overlay hidden"></div>
+
+          <!-- Viewfinder Target Framing Box -->
+          <div id="target-box" class="target-box">
+            <div class="target-corner tl"></div>
+            <div class="target-corner tr"></div>
+            <div class="target-corner bl"></div>
+            <div class="target-corner br"></div>
+            <span class="target-hint">Frame text / badge here</span>
+          </div>
+
+          <!-- Disconnected Placeholder -->
+          <div id="viewfinder-placeholder" class="viewfinder-placeholder">
+            <svg class="cam-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+              <circle cx="12" cy="13" r="4"></circle>
+            </svg>
+            <p class="placeholder-title">Connecting to ESP32-CAM...</p>
+            <p class="placeholder-subtitle">Ensure Wi-Fi is connected to <strong>esp32cam_color</strong></p>
+            <button id="btn-retry-connect" class="btn-secondary btn-sm">Retry Connection</button>
+          </div>
+
+          <!-- Capturing / OCR Active Overlay -->
+          <div id="ocr-overlay" class="ocr-overlay hidden">
+            <div class="spinner-ring"></div>
+            <p id="ocr-status-title" class="ocr-status-title">Capturing photo...</p>
+            <div class="progress-bar-container">
+              <div id="ocr-progress-bar" class="progress-bar-fill" style="width: 0%"></div>
+            </div>
+            <span id="ocr-progress-percent" class="ocr-progress-percent">0%</span>
+          </div>
+        </div>
+
+        <!-- OCR Mode Selector -->
+        <div class="ocr-mode-container">
+          <div class="ocr-mode-selector">
+            <button id="mode-handwriting" class="mode-btn active" type="button" title="Google ML Kit On-Device: reads handwritten alphanumeric text and ignores scene clutter">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+                <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+              </svg>
+              <span>Handwritten & Scene</span>
+            </button>
+            <button id="mode-printed" class="mode-btn" type="button" title="Tesseract OCR: optimized for printed pages and clean documents">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+              <span>Printed Document</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Camera Control Bar -->
+        <div class="camera-controls">
+          <button id="btn-capture" class="btn-primary btn-capture">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+              <circle cx="12" cy="13" r="4"></circle>
+            </svg>
+            <span>Capture & Read Text</span>
+          </button>
+          
+          <div class="secondary-actions">
+            <label for="file-input" class="btn-secondary btn-upload" title="Scan image from phone storage">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              <span>Gallery</span>
+            </label>
+            <input type="file" id="file-input" accept="image/*" class="sr-only" />
+
+            <button id="btn-history" class="btn-secondary btn-history-toggle" title="View scan history">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              <span>History</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Results Section -->
+      <section class="card results-card">
+        <div class="results-header">
+          <div class="tabs">
+            <button class="tab-btn active" data-tab="text">
+              <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+              <span>Extracted Text</span>
+            </button>
+            <button class="tab-btn" data-tab="image">
+              <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+              </svg>
+              <span>Captured Photo</span>
+            </button>
+          </div>
+
+          <!-- Copy Button Highlighted -->
+          <button id="btn-copy" class="btn-copy" title="Copy recognized text to clipboard">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span id="copy-text-label">Copy Text</span>
+          </button>
+        </div>
+
+        <!-- Tab 1: Extracted Text View -->
+        <div id="tab-text" class="tab-content active">
+          <div class="text-meta-bar">
+            <span class="meta-item">
+              <strong>Engine:</strong> <span id="meta-engine">ML Kit (Offline)</span>
+            </span>
+            <span class="meta-item">
+              <strong>Confidence:</strong> <span id="meta-confidence">--</span>
+            </span>
+            <span class="meta-item">
+              <strong>Words:</strong> <span id="meta-words">0</span>
+            </span>
+            <span class="meta-item">
+              <strong>Characters:</strong> <span id="meta-chars">0</span>
+            </span>
+          </div>
+
+          <textarea id="result-textarea" class="result-textarea" placeholder="Recognized text from your ESP32-CAM will appear here. You can edit, select, or copy it directly." spellcheck="false"></textarea>
+
+          <div class="text-actions-bar">
+            <button id="btn-speak" class="action-pill" title="Read aloud using voice synthesis">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+              </svg>
+              <span id="speak-btn-text">Speak</span>
+            </button>
+
+            <button id="btn-share" class="action-pill" title="Share text">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="18" cy="5" r="3"></circle>
+                <circle cx="6" cy="12" r="3"></circle>
+                <circle cx="18" cy="19" r="3"></circle>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+              </svg>
+              <span>Share</span>
+            </button>
+
+            <button id="btn-clear" class="action-pill action-pill-danger" title="Clear text">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              <span>Clear</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Tab 2: Captured Image View -->
+        <div id="tab-image" class="tab-content">
+          <div class="crop-toolbar">
+            <span class="crop-hint">Focus & Area:</span>
+            <div class="crop-preset-group">
+              <button id="btn-crop-card" class="btn-crop-preset" type="button" disabled>Card (50%)</button>
+              <button id="btn-crop-all" class="btn-crop-preset" type="button" disabled>Full Frame</button>
+              <button id="btn-scan-crop" class="btn-crop-action" type="button" disabled>⚡ Scan Crop</button>
+            </div>
+          </div>
+          <div class="captured-image-container" id="captured-container">
+            <img id="captured-img" src="" alt="Captured Frame" />
+            <div id="crop-overlay" class="crop-overlay hidden">
+              <div id="crop-selection" class="crop-selection">
+                <div class="crop-corner tl"></div>
+                <div class="crop-corner tr"></div>
+                <div class="crop-corner bl"></div>
+                <div class="crop-corner br"></div>
+              </div>
+            </div>
+            <div id="captured-placeholder" class="captured-placeholder">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+              </svg>
+              <p>No capture yet. Tap "Capture & Read Text" above.</p>
+            </div>
+          </div>
+          <div class="image-actions-bar">
+            <button id="btn-toggle-crop" class="action-pill" disabled title="Toggle Interactive Crop Box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M6.13 1L6 16a2 2 0 0 0 2 2h15"></path>
+                <path d="M1 6.13L16 6a2 2 0 0 1 2 2v15"></path>
+              </svg>
+              <span id="crop-btn-label">Crop Box</span>
+            </button>
+            <button id="btn-rotate-image" class="action-pill" disabled title="Rotate photo 90 degrees">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+              </svg>
+              <span>Rotate 90°</span>
+            </button>
+            <button id="btn-flip-image" class="action-pill" disabled title="Flip photo horizontally">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="7 8 3 12 7 16"></polyline>
+                <polyline points="17 8 21 12 17 16"></polyline>
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+              </svg>
+              <span>Flip H</span>
+            </button>
+            <button id="btn-rescan-current" class="action-pill" disabled title="Re-run OCR on this photo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M23 4v6h-6"></path>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+              </svg>
+              <span>Re-run OCR</span>
+            </button>
+            <button id="btn-save-image" class="action-pill" disabled title="Save photo to phone">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>Save</span>
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal-backdrop hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2>ESP32 & OCR Settings</h2>
+          <button id="btn-close-settings" class="icon-btn" aria-label="Close settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="input-esp-ip">ESP32 IP Address / Host</label>
+            <input type="text" id="input-esp-ip" class="form-control" value="192.168.4.1" placeholder="192.168.4.1" />
+            <span class="help-text">Default ESP32 Access Point IP is <strong>192.168.4.1</strong></span>
+          </div>
+
+          <div class="form-group">
+            <label for="input-preview-res">Live Viewfinder Resolution</label>
+            <select id="input-preview-res" class="form-control">
+              <option value="/cam-lo.jpg">Low (320x240 - Fast)</option>
+              <option value="/cam-mid.jpg" selected>Medium (640x480 - Recommended)</option>
+              <option value="/cam-hi.jpg">High (1600x1200 - Slower)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="input-capture-endpoint">High-Res Capture Endpoint</label>
+            <select id="input-capture-endpoint" class="form-control">
+              <option value="/capture.jpg" selected>/capture.jpg (Fresh High-Res Snapshot)</option>
+              <option value="/cam-hi.jpg">/cam-hi.jpg (Direct High-Res Frame)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>OCR Engine</label>
+            <div class="engine-badge">
+              <span class="badge-dot"></span>
+              <span>Tesseract.js On-Device (Offline WebAssembly)</span>
+            </div>
+            <span class="help-text">Runs 100% offline inside the APK without external internet or servers.</span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-save-settings" class="btn-primary btn-full">Save & Reconnect</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- History Drawer -->
+    <div id="history-drawer" class="modal-backdrop hidden">
+      <div class="drawer-card">
+        <div class="modal-header">
+          <h2>Scan History</h2>
+          <div class="drawer-actions">
+            <button id="btn-clear-history" class="btn-text-danger" title="Clear all history">Clear All</button>
+            <button id="btn-close-history" class="icon-btn" aria-label="Close history">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div id="history-list" class="history-list">
+          <!-- Populated dynamically -->
+          <div class="history-empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <p>No previous scans yet.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "appId": "com.esp32.textreader",
+  "appName": "ESP32 Text Reader",
+  "webDir": "dist",
+  "server": {
+    "cleartext": true,
+    "androidScheme": "http"
+  },
+  "android": {
+    "allowMixedContent": true
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}
